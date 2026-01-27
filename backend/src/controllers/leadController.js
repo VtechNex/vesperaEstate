@@ -28,9 +28,11 @@ export const createLead = async (req, res) => {
       });
     }
 
-    // ✅ CHECK IF USER OWNS THE LIST
+    // ✅ CHECK IF USER OWNS THE LIST OR IS ADMIN
     const listCheck = await pool.query(
-      `SELECT id FROM lists WHERE id = $1 AND owner_id = $2`,
+      `SELECT l.id FROM lists l
+       INNER JOIN users u ON u.id = $2
+       WHERE l.id = $1 AND (l.owner_id = $2 OR u.role = 'admin')`,
       [list_id, user_id]
     );
 
@@ -67,9 +69,11 @@ export const getLeadsByListId = async (req, res) => {
     const user_id = req.user.id; // Get user ID
     const { list_id } = req.params;
 
-    // ✅ CHECK IF USER OWNS THE LIST
+    // ✅ CHECK IF USER OWNS THE LIST OR IS ADMIN
     const listCheck = await pool.query(
-      `SELECT id FROM lists WHERE id = $1 AND owner_id = $2`,
+      `SELECT l.id FROM lists l
+       INNER JOIN users u ON u.id = $2
+       WHERE l.id = $1 AND (l.owner_id = $2 OR u.role = 'admin')`,
       [list_id, user_id]
     );
 
@@ -187,11 +191,12 @@ export const updateLead = async (req, res) => {
       notes
     } = req.body;
 
-    // ✅ CHECK IF USER OWNS THE LEAD
+    // ✅ CHECK IF USER OWNS THE LEAD OR IS ADMIN
     const ownershipCheck = await pool.query(
       `SELECT ld.id FROM leads ld
        INNER JOIN lists l ON ld.list_id = l.id
-       WHERE ld.id = $1 AND l.owner_id = $2`,
+       INNER JOIN users u ON u.id = $2
+       WHERE ld.id = $1 AND (l.owner_id = $2 OR u.role = 'admin')`,
       [id, user_id]
     );
 
@@ -243,11 +248,12 @@ export const deleteLead = async (req, res) => {
     const user_id = req.user.id;
     const { id } = req.params;
 
-    // ✅ CHECK IF USER OWNS THE LEAD
+    // ✅ CHECK IF USER OWNS THE LEAD OR IS ADMIN
     const ownershipCheck = await pool.query(
       `SELECT ld.id FROM leads ld
        INNER JOIN lists l ON ld.list_id = l.id
-       WHERE ld.id = $1 AND l.owner_id = $2`,
+       INNER JOIN users u ON u.id = $2
+       WHERE ld.id = $1 AND (l.owner_id = $2 OR u.role = 'admin')`,
       [id, user_id]
     );
 
