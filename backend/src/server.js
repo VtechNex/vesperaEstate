@@ -3,6 +3,7 @@ import express from "express";
 import pool from "./db/pool.js";
 import authRouter from "./routes/auth.js";
 import adminRouter from "./routes/admin.user.routes.js";
+import qualifiersRouter from "./routes/qualifiers.js";
 import listsRouter from "./routes/lists.js";
 import leadsRouter from "./routes/leads.js";
 import cors from "cors";
@@ -27,6 +28,7 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/admin", authMiddleware, requireRole("admin"), adminRouter);
+app.use("/api/admin/qualifiers", authMiddleware, requireRole("admin"), qualifiersRouter);
 app.use("/api/lists", authMiddleware, listsRouter);
 app.use("/api/leads", authMiddleware, leadsRouter);
 

@@ -65,7 +65,16 @@ CREATE TABLE leads (
         ON DELETE CASCADE
 );
 
+CREATE TABLE qualifiers (
+    id          BIGSERIAL PRIMARY KEY,
+    name        VARCHAR(150) NOT NULL,
+    type        VARCHAR(20) NOT NULL CHECK (type IN ('product', 'customer', 'tag')),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_qualifier_type_name UNIQUE (type, name)
+);
+
 --- INDEXES SETUP
+CREATE INDEX idx_qualifiers_type ON qualifiers(type);
 CREATE INDEX idx_lists_owner_id ON lists(owner_id);
 CREATE INDEX idx_leads_list_id ON leads(list_id);
 CREATE INDEX idx_leads_mobile ON leads(mobile);

@@ -44,12 +44,16 @@ export const createLead = async (req, res) => {
       });
     }
 
+    const { productGroup, customerGroup, tags, dealSize, leadPotential, leadStage } = req.body;
+
     const result = await pool.query(
       `INSERT INTO leads (
         fname, lname, designation, organization, email, mobile,
-        tel1, tel2, website, address, notes, list_id
+        tel1, tel2, website, address, notes, list_id,
+        deal_size, lead_potential, lead_stage,
+        product_group, customer_group, tags
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING *`,
       [
         fname,
@@ -63,7 +67,13 @@ export const createLead = async (req, res) => {
         website || null,
         address || null,
         notes || null,
-        list_id
+        list_id,
+        dealSize || null,
+        leadPotential || null,
+        leadStage || null,
+        productGroup || null,
+        customerGroup || null,
+        tags && tags.length ? tags : null
       ]
     );
 
@@ -233,8 +243,14 @@ export const updateLead = async (req, res) => {
         tel2 = COALESCE($8, tel2),
         website = COALESCE($9, website),
         address = COALESCE($10, address),
-        notes = COALESCE($11, notes)
-       WHERE id = $12
+        notes = COALESCE($11, notes),
+        deal_size = COALESCE($12, deal_size),
+        lead_potential = COALESCE($13, lead_potential),
+        lead_stage = COALESCE($14, lead_stage),
+        product_group = COALESCE($15, product_group),
+        customer_group = COALESCE($16, customer_group),
+        tags = COALESCE($17, tags)
+       WHERE id = $18
        RETURNING *`,
       [
         req.body.fname || null,
@@ -248,6 +264,12 @@ export const updateLead = async (req, res) => {
         req.body.website || null,
         req.body.address || null,
         req.body.notes || null,
+        req.body.dealSize || null,
+        req.body.leadPotential || null,
+        req.body.leadStage || null,
+        req.body.productGroup || null,
+        req.body.customerGroup || null,
+        req.body.tags && req.body.tags.length ? req.body.tags : null,
         id
       ]
     );

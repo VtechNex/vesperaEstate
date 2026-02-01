@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import QUALIFIERS from '../../../../services/qualifierService'
 import { Input } from '../../../../components/ui/input'
 import { Button } from '../../../../components/ui/button'
 import { Label } from '../../../../components/ui/label'
@@ -14,36 +15,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../../../components
 function ManageQualifiers() {
   const [activeTab, setActiveTab] = useState('product-groups')
 
-  const initialGroups = [
-    { id: 'H', name: 'H - LAND' },
-    { id: 'G', name: 'G - SHOP' },
-    { id: 'F', name: 'F - BANGLOW / VILLA' },
-    { id: 'E', name: 'E - 4BHK' },
-    { id: 'B', name: 'B. 1BHK' },
-    { id: 'D', name: 'D - 3BHK' },
-    { id: 'C', name: 'C - 2BHK' },
-    { id: 'A', name: 'A. 1RK' },
-  ]
-
-  const initialCustomerGroups = [
-    { id: 'RENT', name: 'RENT' },
-    { id: 'PURCHASE', name: 'PURCHASE' },
-    { id: 'HEAVY', name: 'HEAVY DEPOSIT' },
-  ]
-
-  const initialTags = [
-    { id: 't1', name: 'Bhavani peth' },
-    { id: 't2', name: 'Tilakar nagar / iscon temple' },
-    { id: 't3', name: 'PURCHASE 1BHK' },
-    { id: 't4', name: 'PURCHASE 2BHK' },
-    { id: 't5', name: 'PURCHASE VILLA' },
-    { id: 't6', name: 'Manjri' },
-    { id: 't7', name: 'Maval' },
-    { id: 't8', name: 'Ghorpade Peth' },
-    { id: 't9', name: 'Sayyad Nagar' },
-    { id: 't10', name: 'Kadnagar' },
-  ]
-
   const listOptionsForCustomFields = [
     { id: 'heavy', label: 'HEAVY DEPOSIT' },
     { id: 'purchase', label: 'PURCHASE' },
@@ -52,9 +23,10 @@ function ManageQualifiers() {
     { id: 'rent-req', label: 'RENT - REQUIREMENT' },
   ]
 
-  const [groups, setGroups] = useState(initialGroups)
-  const [customerGroups, setCustomerGroups] = useState(initialCustomerGroups)
-  const [tags, setTags] = useState(initialTags)
+  const [groups, setGroups] = useState([])
+  const [customerGroups, setCustomerGroups] = useState([])
+  const [tags, setTags] = useState([])
+  const [loading, setLoading] = useState(false)
   const [customFields, setCustomFields] = useState([])
 
   const [search, setSearch] = useState('')
@@ -134,26 +106,48 @@ function ManageQualifiers() {
     currentTagPage * tagsPageSize
   )
 
-  const handleUpdate = () => {
+  const fetchAllQualifiers = async () => {
+    setLoading(true)
+    try {
+      const res = await QUALIFIERS.FETCH_ALL();
+      if (res?.data?.success) {
+        const rows = res.data.data || [];
+        setGroups(rows.filter((r) => r.type === 'product'))
+        setCustomerGroups(rows.filter((r) => r.type === 'customer'))
+        setTags(rows.filter((r) => r.type === 'tag'))
+      } else {
+        console.error('Failed to load qualifiers', res)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchAllQualifiers()
+  }, [])
+
+  const handleUpdate = async () => {
     if (!editDialog.name.trim() || !editDialog.listType) return
 
-    const updater = (items) =>
-      items.map((item) =>
-        item.id === editDialog.id ? { ...item, name: editDialog.name } : item
-      )
-
-    if (editDialog.listType === 'product') {
-      setGroups((prev) => updater(prev))
-    } else if (editDialog.listType === 'customer') {
-      setCustomerGroups((prev) => updater(prev))
-    } else if (editDialog.listType === 'tag') {
-      setTags((prev) => updater(prev))
+    try {
+      const res = await QUALIFIERS.UPDATE(editDialog.id, { name: editDialog.name })
+      if (res?.data?.success) {
+        await fetchAllQualifiers()
+      } else {
+        window.alert('Update failed')
+      }
+    } catch (err) {
+      console.error(err)
+      window.alert('Update failed')
     }
 
     setEditDialog({ open: false, listType: null, id: null, name: '' })
   }
 
-  const handleDelete = (listType, id) => {
+  const handleDelete = async (listType, id) => {
     const findById = (arr) => arr.find((x) => x.id === id)
 
     let target = null
@@ -163,18 +157,22 @@ function ManageQualifiers() {
 
     if (target && !window.confirm(`Delete qualifier "${target.name}"?`)) return
 
-    if (listType === 'product') {
-      setGroups((prev) => prev.filter((g) => g.id !== id))
-    } else if (listType === 'customer') {
-      setCustomerGroups((prev) => prev.filter((g) => g.id !== id))
-    } else if (listType === 'tag') {
-      setTags((prev) => prev.filter((g) => g.id !== id))
+    try {
+      const res = await QUALIFIERS.DELETE(id)
+      if (res?.data?.success) {
+        await fetchAllQualifiers()
+      } else {
+        window.alert('Delete failed')
+      }
+    } catch (err) {
+      console.error(err)
+      window.alert('Delete failed')
     }
 
     setMenuOpenId(null)
   }
 
-  const handleAddFromDialog = () => {
+  const handleAddFromDialog = async () => {
     const raw = addDialog.value || ''
     const parts = raw
       .split(',')
@@ -182,23 +180,14 @@ function ManageQualifiers() {
       .filter(Boolean)
     if (parts.length === 0 || !addDialog.type) return
 
-    const buildNext = (prev) => {
-      const next = [...prev]
-      parts.forEach((name, index) => {
-        next.push({
-          id: `${Date.now()}-${index}`,
-          name,
-        })
-      })
-      return next
-    }
-
-    if (addDialog.type === 'product') {
-      setGroups((prev) => buildNext(prev))
-    } else if (addDialog.type === 'customer') {
-      setCustomerGroups((prev) => buildNext(prev))
-    } else if (addDialog.type === 'tag') {
-      setTags((prev) => buildNext(prev))
+    try {
+      for (let name of parts) {
+        await QUALIFIERS.CREATE({ name, type: addDialog.type })
+      }
+      await fetchAllQualifiers()
+    } catch (err) {
+      console.error(err)
+      window.alert('Add failed')
     }
 
     setAddDialog({ open: false, type: null, value: '' })
@@ -371,7 +360,7 @@ function ManageQualifiers() {
                 <div key={g.id} className="flex items-center px-4 md:px-6 py-3 text-sm text-white/85">
                   <div className="flex-1">{g.name}</div>
                   <div className="w-24 flex justify-end">
-                    <Button variant="ghost" className="text-xs">Edit</Button>
+                    <Button variant="ghost" className="text-xs" onClick={() => setEditDialog({ open: true, listType: 'product', id: g.id, name: g.name })}>Edit</Button>
                     <Button variant="ghost" className="text-xs text-red-300" onClick={() => handleDelete('product', g.id)}>Delete</Button>
                   </div>
                 </div>
@@ -415,7 +404,7 @@ function ManageQualifiers() {
                 <div key={g.id} className="flex items-center px-4 md:px-6 py-3 text-sm text-white/85">
                   <div className="flex-1">{g.name}</div>
                   <div className="w-24 flex justify-end">
-                    <Button variant="ghost" className="text-xs">Edit</Button>
+                    <Button variant="ghost" className="text-xs" onClick={() => setEditDialog({ open: true, listType: 'customer', id: g.id, name: g.name })}>Edit</Button>
                     <Button variant="ghost" className="text-xs text-red-300" onClick={() => handleDelete('customer', g.id)}>Delete</Button>
                   </div>
                 </div>
@@ -449,7 +438,7 @@ function ManageQualifiers() {
                 <div key={t.id} className="flex items-center px-4 md:px-6 py-3 text-sm text-white/85">
                   <div className="flex-1">{t.name}</div>
                   <div className="w-24 flex justify-end">
-                    <Button variant="ghost" className="text-xs">Edit</Button>
+                    <Button variant="ghost" className="text-xs" onClick={() => setEditDialog({ open: true, listType: 'tag', id: t.id, name: t.name })}>Edit</Button>
                     <Button variant="ghost" className="text-xs text-red-300" onClick={() => handleDelete('tag', t.id)}>Delete</Button>
                   </div>
                 </div>
@@ -501,7 +490,7 @@ function ManageQualifiers() {
           </DialogHeader>
           <div className="mt-4 space-y-4">
             <Label>Name (comma separated for multiple)</Label>
-            <Input value={addDialog.value} onChange={(e) => setAddDialog((d) => ({ ...d, value: e.target.value }))} />
+            <Input className="text-black" value={addDialog.value} onChange={(e) => setAddDialog((d) => ({ ...d, value: e.target.value }))} />
           </div>
           <DialogFooter>
             <Button onClick={() => setAddDialog({ open: false, type: null, value: '' })} variant="outline">Cancel</Button>
@@ -517,7 +506,7 @@ function ManageQualifiers() {
           </DialogHeader>
           <div className="mt-4 space-y-4">
             <Label>Name</Label>
-            <Input value={editDialog.name} onChange={(e) => setEditDialog((d) => ({ ...d, name: e.target.value }))} />
+            <Input className="text-black" value={editDialog.name} onChange={(e) => setEditDialog((d) => ({ ...d, name: e.target.value }))} />
           </div>
           <DialogFooter>
             <Button onClick={() => setEditDialog({ open: false, listType: null, id: null, name: '' })} variant="outline">Cancel</Button>
@@ -533,7 +522,7 @@ function ManageQualifiers() {
           </DialogHeader>
           <div className="mt-4 space-y-4 text-xs md:text-sm">
             <Label>Field Name</Label>
-            <Input value={customFieldDialog.name} onChange={(e) => setCustomFieldDialog((d) => ({ ...d, name: e.target.value }))} />
+            <Input className="text-black" value={customFieldDialog.name} onChange={(e) => setCustomFieldDialog((d) => ({ ...d, name: e.target.value }))} />
 
             <Label>Type</Label>
             <select value={customFieldDialog.type} onChange={(e) => setCustomFieldDialog((d) => ({ ...d, type: e.target.value }))} className="bg-black/40 border border-white/15 text-white text-sm rounded-md px-3 py-2 w-full">

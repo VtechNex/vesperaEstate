@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import LEADS from '../../../services/leadService'
 import LISTS from '../../../services/listService'
+import QUALIFIERS from '../../../services/qualifierService'
 
 export default function AddLeads({ lists = [], onCreate }) {
   const [localLists, setLocalLists] = useState([]);
@@ -36,14 +37,7 @@ export default function AddLeads({ lists = [], onCreate }) {
     dealSize: '',
     leadPotential: '',
     leadStage: '',
-    tags: '',
-    
-    // Follow-up Tab
-    followUpDate: '',
-    followUpTime: '',
-    followUpNotes: '',
-    followUpStatus: 'Pending',
-    assignedTo: '',
+    tags: [],
     doNotFollowUp: false,
     doNotFollowUpReason: '',
     
@@ -65,9 +59,13 @@ export default function AddLeads({ lists = [], onCreate }) {
   const [loading, setLoading] = useState(false)
   const [errorPopup, setErrorPopup] = useState("");
 
+  const [productGroups, setProductGroups] = useState([])
+  const [customerGroups, setCustomerGroups] = useState([])
+  const [tagsList, setTagsList] = useState([])
+
   const dropdownRef = useRef(null)
 
-  // Fetch lists on mount
+  // Fetch lists and qualifiers on mount
   useEffect(() => {
     const fetchLists = async () => {
       const response = await LISTS.FETCH_WITH_COUNTS();
@@ -75,7 +73,23 @@ export default function AddLeads({ lists = [], onCreate }) {
         setLocalLists(response.data.data);
       }
     }
+
+    const fetchQualifiers = async () => {
+      try {
+        const p = await QUALIFIERS.FETCH_ALL('product');
+        const c = await QUALIFIERS.FETCH_ALL('customer');
+        const t = await QUALIFIERS.FETCH_ALL('tag');
+
+        setProductGroups((p && p.data && p.data.data) ? p.data.data : []);
+        setCustomerGroups((c && c.data && c.data.data) ? c.data.data : []);
+        setTagsList((t && t.data && t.data.data) ? t.data.data : []);
+      } catch (err) {
+        console.error('Failed to fetch qualifiers', err);
+      }
+    }
+
     fetchLists()
+    fetchQualifiers()
   }, [])
 
   useEffect(() => setLocalLists(lists || []), [lists])
@@ -123,7 +137,7 @@ export default function AddLeads({ lists = [], onCreate }) {
         dealSize: form.dealSize || null,
         leadPotential: form.leadPotential || null,
         leadStage: form.leadStage || null,
-        tags: form.tags || null,
+        tags: form.tags && form.tags.length ? form.tags : null,
         
         // Follow-up fields
         followUpDate: form.followUpDate || null,
@@ -738,7 +752,10 @@ export default function AddLeads({ lists = [], onCreate }) {
                     value={form.productGroup}
                     onChange={(e) => setForm(prev => ({ ...prev, productGroup: e.target.value }))}
                   >
-                    <option value="">Select Product Groups</option>
+                    <option value="">Select Product Group</option>
+                    {productGroups.map((g) => (
+                      <option key={g.id} value={g.name}>{g.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -768,6 +785,9 @@ export default function AddLeads({ lists = [], onCreate }) {
                     onChange={(e) => setForm(prev => ({ ...prev, customerGroup: e.target.value }))}
                   >
                     <option value="">Select Customer Group</option>
+                    {customerGroups.map((g) => (
+                      <option key={g.id} value={g.name}>{g.name}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -811,7 +831,47 @@ export default function AddLeads({ lists = [], onCreate }) {
                 </div>
 
                 {/* Lead Stage */}
+
+                {/* Tags (multi-select) */}
                 <div className="bg-black/30 p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#D4AF37]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
+                      <path d="M7 7l10 10" strokeLinecap="round" />
+                      <path d="M17 7h-3" strokeLinecap="round" />
+                    </svg>
+                    <span className="text-sm text-white/80 font-medium">Tags</span>
+                  </div>
+
+                  <div className="w-[400px] relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setForm(prev => ({ ...prev, isDropdownOpen: !prev.isDropdownOpen }))}
+                      className="w-full text-left bg-black text-white border border-white/15 rounded-md px-3 py-2 focus:outline-none focus:border-[#D4AF37] transition-colors"
+                    >
+                      {form.tags.length === 0 ? 'Select tags' : `${form.tags.length} selected`}
+                    </button>
+
+                    {form.isDropdownOpen && (
+                      <div className="absolute right-0 left-0 mt-2 bg-black/90 border border-white/10 rounded-md p-3 max-h-48 overflow-y-auto z-50">
+                        {tagsList.map((t) => (
+                          <label key={t.id} className="flex items-center gap-2 text-sm mb-2">
+                            <input
+                              type="checkbox"
+                              checked={form.tags.includes(t.id)}
+                              onChange={() => {
+                                setForm(prev => {
+                                  const already = prev.tags.includes(t.id)
+                                  const next = already ? prev.tags.filter(x => x !== t.id) : [...prev.tags, t.id]
+                                  return { ...prev, tags: next }
+                                })
+                              }}
+                            />
+                            <span>{t.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>                <div className="bg-black/30 p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2 whitespace-nowrap">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

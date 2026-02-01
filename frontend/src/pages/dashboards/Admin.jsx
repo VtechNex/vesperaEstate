@@ -500,11 +500,19 @@ export default function Admin() {
 
               {manageLeadsOpen && (
                 <div className="mt-1 ml-8 grid gap-1">
-                  <NavItem icon={Users2} label="View All Leads" id="manage-leads-all" />
+                  <NavItem icon={Users2} label="View All Leads" id="manage-leads-all" 
+                    onClick={() => {
+                      setManageLeadsOpen((prev) => !prev)
+                      setTab('manage-leads-all')
+                    }} />
                   <NavItem
                     icon={Users2}
                     label="Unattended Leads"
                     id="manage-leads-unattended"
+                    onClick={() => {
+                      setManageLeadsOpen((prev) => !prev)
+                      setTab('manage-leads-unattended')
+                    }}
                   />
                 </div>
               )}
@@ -868,18 +876,9 @@ export default function Admin() {
             ) && (
                 <ManageLeads
                   lists={lists}
-                  leads={leads}
                   initialViewMode={
                     tab === 'manage-leads-unattended' ? 'unattended' : 'all'
                   }
-                  onRefresh={async (listFilter) => {
-                    // Just reload demo data
-                    setLeads(DEMO_LEADS)
-                    return Promise.resolve()
-                  }}
-                  onDelete={async (id) => {
-                    await deleteLead(id)
-                  }}
                 />
               )}
 
