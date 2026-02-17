@@ -6,6 +6,8 @@ import adminRouter from "./routes/admin.user.routes.js";
 import qualifiersRouter from "./routes/qualifiers.js";
 import listsRouter from "./routes/lists.js";
 import leadsRouter from "./routes/leads.js";
+import propertiesRouter from "./routes/properties.js"
+import globalRouter from "./routes/globalRouter.js";
 import cors from "cors";
 import { authMiddleware, requireRole } from "./middleware/security.js";
 
@@ -31,6 +33,8 @@ app.use("/api/admin", authMiddleware, requireRole("admin"), adminRouter);
 app.use("/api/admin/qualifiers", authMiddleware, requireRole("admin"), qualifiersRouter);
 app.use("/api/lists", authMiddleware, listsRouter);
 app.use("/api/leads", authMiddleware, leadsRouter);
+app.use("/api/properties", authMiddleware, propertiesRouter);
+app.use("/api/global", globalRouter);
 
 // ✅ FIX PORT FALLBACK
 const PORT = process.env.PORT || 5000;

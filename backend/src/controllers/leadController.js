@@ -45,15 +45,22 @@ export const createLead = async (req, res) => {
     }
 
     const { productGroup, customerGroup, tags, dealSize, leadPotential, leadStage } = req.body;
+    const { assigned_to, follow_up_date, repeat_follow_up, repeat_interval, follow_up_notes } = req.body;
 
     const result = await pool.query(
       `INSERT INTO leads (
         fname, lname, designation, organization, email, mobile,
         tel1, tel2, website, address, notes, list_id,
+        product_group, customer_group, tags,
         deal_size, lead_potential, lead_stage,
-        product_group, customer_group, tags
+        assigned_to, follow_up_date, repeat_follow_up,
+        repeat_interval, follow_up_notes
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+        $13,$14,$15,
+        $16,$17,$18,
+        $19,$20,$21,$22,$23
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       RETURNING *`,
       [
         fname,
@@ -68,12 +75,20 @@ export const createLead = async (req, res) => {
         address || null,
         notes || null,
         list_id,
+
+        productGroup || null,
+        customerGroup || null,
+        Array.isArray(tags) ? tags : null,
+
         dealSize || null,
         leadPotential || null,
         leadStage || null,
-        productGroup || null,
-        customerGroup || null,
-        tags && tags.length ? tags : null
+
+        assigned_to || null,
+        follow_up_date || null,
+        repeat_follow_up || false,
+        repeat_interval || null,
+        follow_up_notes || null
       ]
     );
 
@@ -249,8 +264,14 @@ export const updateLead = async (req, res) => {
         lead_stage = COALESCE($14, lead_stage),
         product_group = COALESCE($15, product_group),
         customer_group = COALESCE($16, customer_group),
-        tags = COALESCE($17, tags)
-       WHERE id = $18
+        tags = COALESCE($17, tags),
+        assigned_to = COALESCE($18, assigned_to),
+        follow_up_date = COALESCE($19, follow_up_date),
+        repeat_follow_up = COALESCE($20, repeat_follow_up),
+        repeat_interval = COALESCE($21, repeat_interval),
+        follow_up_notes = COALESCE($22, follow_up_notes),
+        updated_at = NOW()
+       WHERE id = $23
        RETURNING *`,
       [
         req.body.fname || null,
@@ -270,6 +291,11 @@ export const updateLead = async (req, res) => {
         req.body.productGroup || null,
         req.body.customerGroup || null,
         req.body.tags && req.body.tags.length ? req.body.tags : null,
+        assigned_to || null,
+        follow_up_date || null,
+        repeat_follow_up || false,
+        repeat_interval || null,
+        follow_up_notes || null,
         id
       ]
     );

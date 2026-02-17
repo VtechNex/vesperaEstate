@@ -59,10 +59,21 @@ CREATE TABLE leads (
 
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+    assigned_to    UUID,                -- user.id
+    follow_up_date TIMESTAMP,  ----- next follow-up date for the lead
+    repeat_follow_up BOOLEAN DEFAULT FALSE,  -- whether to repeat follow-ups until lead is closed
+    repeat_interval INTERVAL,  -- interval for repeating follow-ups (e.g., '7 days')
+    follow_up_count INT DEFAULT 0,  -- number of follow-ups done
+    follow_up_notes TEXT,  -- notes from follow-ups
+
     CONSTRAINT fk_leads_list
         FOREIGN KEY (list_id)
         REFERENCES lists(id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_leads_assigned_to
+        FOREIGN KEY (assigned_to)
+        REFERENCES users(id)
+        ON DELETE SET NULL
 );
 
 CREATE TABLE qualifiers (
