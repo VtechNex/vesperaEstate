@@ -9,19 +9,41 @@ import { encryptToken, decryptToken } from "../utils/crypto";
 const getUser = () => {
   try {
     const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+
+    if (!user) return null;
+
+    const parsedUser = JSON.parse(user);
+
+    if (typeof parsedUser !== "object" || parsedUser === null) {
+      console.warn("Corrupted user object in localStorage");
+      return null;
+    }
+
+    return parsedUser;
   } catch (error) {
     console.error("Invalid user in localStorage:", error);
+    localStorage.removeItem("user"); // cleanup corrupted data
     return null;
   }
 };
 
 const getAuthToken = () => {
   const user = getUser();
-  if (!user?.token) return null;
+
+  if (!user || !user.token) {
+    console.warn("No token found in user object");
+    return null;
+  }
 
   try {
-    return decryptToken(user.token);
+    const decrypted = decryptToken(user.token);
+
+    if (!decrypted) {
+      console.warn("Token decryption returned empty value");
+      return null;
+    }
+
+    return decrypted;
   } catch (error) {
     console.error("Token decrypt failed:", error);
     return null;
@@ -34,7 +56,6 @@ const getAuthToken = () => {
 
 const login = async (email, password) => {
   try {
-    // ✅ IMPORTANT: your backend route must be /api/auth/log
     const response = await axios.post(
       `${API.AUTH}/log`,
       { email, password },
@@ -51,19 +72,23 @@ const login = async (email, password) => {
       throw new Error("Invalid response from server");
     }
 
+    const encryptedToken = encryptToken(token);
+
+    if (!encryptedToken) {
+      throw new Error("Token encryption failed");
+    }
+
     const storedUser = {
       ...user,
-      token: encryptToken(token),
+      token: encryptedToken,
     };
 
     localStorage.setItem("user", JSON.stringify(storedUser));
 
-    // ✅ RETURN FULL RESPONSE (so you can use res.status in frontend)
     return response;
   } catch (error) {
     console.error("Login error:", error);
 
-    // ✅ Always throw a consistent object
     const message =
       error?.response?.data?.error ||
       error?.response?.data?.message ||

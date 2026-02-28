@@ -2,7 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { Button } from '../../components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import { Users } from 'lucide-react'
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Building2, Image as ImageIcon } from "lucide-react"
+import ManagePropertiesMedia from './components/ManagePropertiesMedia'
 import {
   LayoutGrid,
   Users2,
@@ -192,7 +193,7 @@ export default function Admin() {
     try {
       const listsResponse = await LISTS.FETCH_WITH_COUNTS()
       const leadsResponse = await LEADS.FETCH_ALL()
-      
+
       if (listsResponse?.status === 200 && listsResponse?.data?.data) {
         setLists(listsResponse.data.data)
       }
@@ -500,7 +501,7 @@ export default function Admin() {
 
               {manageLeadsOpen && (
                 <div className="mt-1 ml-8 grid gap-1">
-                  <NavItem icon={Users2} label="View All Leads" id="manage-leads-all" 
+                  <NavItem icon={Users2} label="View All Leads" id="manage-leads-all"
                     onClick={() => {
                       setManageLeadsOpen((prev) => !prev)
                       setTab('manage-leads-all')
@@ -554,7 +555,12 @@ export default function Admin() {
               )}
             </div>
           </nav>
-
+          {/* Properties Media Tab Link */}
+          <NavItem
+            icon={Building2}
+            label="Properties Media"
+            id="manage-properties"
+          />
           <div className="mt-auto p-4 border-t border-white/10">
             <Button className="w-full border border-white/20 bg-white/10 hover:bg-white/15" onClick={onLogout}>
               Logout
@@ -1086,6 +1092,9 @@ export default function Admin() {
             {/* === SETTINGS: USER PROFILE TAB === */}
             {tab === 'settings-user' && <UserProfileSettings />}
 
+            {/* === NEW: PROPERTIES MEDIA TAB === */}
+            {tab === 'manage-properties' && <ManagePropertiesMedia />}
+
             {/* === SETTINGS: COMPANY PROFILE TAB === */}
             {tab === 'settings-company' && <CompanyProfileSettings />}
 
@@ -1101,4 +1110,4 @@ export default function Admin() {
       <SiteFooter />
     </div>
   )
-}
+} 

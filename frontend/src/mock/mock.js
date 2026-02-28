@@ -188,4 +188,3 @@ export const FAQS = [
   { q: "Do you charge buyers any consultancy fees?", a: "Our compensation follows standard industry practice. We ensure full transparency on any applicable fees upfront." },
   { q: "Can you list my property for sale or rent?", a: "Yes. We provide valuation, staging guidance, marketing, and negotiations to help you sell or rent quickly at the right price." },
 ];
-

@@ -1,6 +1,7 @@
 import React from "react";
 import axios from "axios";
-import { BRAND, IMAGES, SERVICES, WHY_US, FEATURED, FAQS } from "../mock/mock.js";
+import { BRAND, IMAGES, SERVICES, WHY_US, FAQS } from "../mock/mock.js";
+import PROPERTIES from "../services/propertiesService.js";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import {
@@ -67,6 +68,27 @@ const FALLBACK_IMG = {
   about: "https://images.unsplash.com/photo-1527030280862-64139fba04ca?auto=format&fit=crop&w=1200&q=60",
   property: "https://images.unsplash.com/photo-1600585154154-7ef9d53f6cfb?auto=format&fit=crop&w=1200&q=60",
 };
+
+// Map API property to landing card shape
+function mapApiPropertyToCard(p) {
+  const type = p.sale ? "sale" : "rent";
+  const category = p.type ? String(p.type).charAt(0).toUpperCase() + String(p.type).slice(1).toLowerCase() : "Residential";
+  return {
+    id: p.id,
+    title: p.title,
+    location: p.location,
+    image: (p.images && p.images[0]) || FALLBACK_IMG.property,
+    price: p.price != null ? Number(p.price) : 0,
+    pricePerMonth: type === "rent" && p.price != null ? Number(p.price) : undefined,
+    beds: p.beds,
+    baths: p.baths,
+    area: p.sqft,
+    desc: p.description,
+    features: Array.isArray(p.tags) ? p.tags : [],
+    type,
+    category,
+  };
+}
 
 const formatSalePrice = (n) => {
   if (n >= 10000000) {
@@ -801,6 +823,8 @@ function Featured({ onOpenConsultation }) {
   const [limit, setLimit] = React.useState(4);
   const [openDetails, setOpenDetails] = React.useState(false);
   const [active, setActive] = React.useState(null);
+  const [propertiesFromApi, setPropertiesFromApi] = React.useState([]);
+  const [propertiesLoading, setPropertiesLoading] = React.useState(true);
   const [saved, setSaved] = React.useState(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem("vespera_shortlist") || "[]"));
@@ -808,6 +832,25 @@ function Featured({ onOpenConsultation }) {
       return new Set();
     }
   });
+
+  // Fetch properties from public API (same list admin manages)
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setPropertiesLoading(true);
+      try {
+        const res = await PROPERTIES.GET_PUBLIC(1, 100);
+        if (!cancelled && res?.data?.data) {
+          setPropertiesFromApi(res.data.data.map(mapApiPropertyToCard));
+        }
+      } catch (_) {
+        if (!cancelled) setPropertiesFromApi([]);
+      } finally {
+        if (!cancelled) setPropertiesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   React.useEffect(() => {
     localStorage.setItem("vespera_shortlist", JSON.stringify(Array.from(saved)));
@@ -843,9 +886,9 @@ function Featured({ onOpenConsultation }) {
     });
   };
 
-  const saleList = React.useMemo(() => FEATURED.sale.map(p => ({ ...p, type: 'sale' })), [])
-  const rentList = React.useMemo(() => FEATURED.rent.map(p => ({ ...p, type: 'rent' })), [])
-  const allList = React.useMemo(() => [...saleList, ...rentList].map(p => ({ ...p, category: (p.id % 2 === 0 ? 'Residential' : 'Commercial') })), [saleList, rentList])
+  const saleList = React.useMemo(() => propertiesFromApi.filter(p => p.type === 'sale'), [propertiesFromApi]);
+  const rentList = React.useMemo(() => propertiesFromApi.filter(p => p.type === 'rent'), [propertiesFromApi]);
+  const allList = React.useMemo(() => [...saleList, ...rentList], [saleList, rentList]);
 
   const counts = {
     all: allList.length,
@@ -899,23 +942,33 @@ function Featured({ onOpenConsultation }) {
           </div>
         </div>
 
-        <div className="mt-4 text-white/60">Showing {Math.min(limit, filtered.length)} of {filtered.length} properties</div>
-
-        <div className={view === 'grid' ? 'mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'mt-8 space-y-6'}>
-          {visible.map((p) => (
-            <PropertyCard
-              key={p.id}
-              item={p}
-              type={p.type}
-              category={p.category}
-              onToggleSave={toggle}
-              saved={saved.has(p.id)}
-              view={view}
-              onViewDetails={(it) => { setActive(it); setOpenDetails(true); }}
-              onContact={() => smoothScrollTo('contact')}
-            />
-          ))}
+        <div className="mt-4 text-white/60">
+          {propertiesLoading ? "Loading properties…" : `Showing ${Math.min(limit, filtered.length)} of ${filtered.length} properties`}
         </div>
+
+        {propertiesLoading ? (
+          <div className="mt-8 flex justify-center py-12 text-white/60">Loading properties…</div>
+        ) : filtered.length === 0 ? (
+          <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-8 text-center text-white/70">
+            No properties listed yet. Check back later or contact us for options.
+          </div>
+        ) : (
+          <div className={view === 'grid' ? 'mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'mt-8 space-y-6'}>
+            {visible.map((p) => (
+              <PropertyCard
+                key={p.id}
+                item={p}
+                type={p.type}
+                category={p.category}
+                onToggleSave={toggle}
+                saved={saved.has(p.id)}
+                view={view}
+                onViewDetails={(it) => { setActive(it); setOpenDetails(true); }}
+                onContact={() => smoothScrollTo('contact')}
+              />
+            ))}
+          </div>
+        )}
 
         {filtered.length > limit && (
           <div className="mt-8 flex justify-center">
