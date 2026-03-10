@@ -1,5 +1,6 @@
 import express from "express";
 import { createProperty, deleteProperty, getProperties, updateProperty } from "../controllers/propertiesController.js"
+import upload from "../middleware/cloudinaryStorage.js";
 
 const router = express.Router();
 
@@ -52,6 +53,20 @@ router.delete('/delete/:id', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+})
+
+router.post("/upload-property-images", upload.array("images", 10), (req, res) => {
+
+  const images = req.files.map(file => ({
+    url: file.path,
+    public_id: file.filename
+  }));
+
+  res.json({
+    message: "Images uploaded successfully",
+    images
+  });
+
 })
 
 export default router;

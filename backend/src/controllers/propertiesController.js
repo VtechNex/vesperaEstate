@@ -119,8 +119,8 @@ async function getPropertyById(id) {
 async function createProperty(property) {
     const { title, description, price, location, images, type, beds, baths, sqft, tags, sale } = property;
     const { rows } = await pool.query(
-        "INSERT INTO properties (title, description, price, location, images, type, beds, baths, sqft, tags, sale) VALUES ($1, $2, $3, $4, ARRAY[$5], $6, $7, $8, $9, ARRAY[$10], $11) RETURNING *",
-        [title, description, price, location, images, type, beds || null, baths || null, sqft || null, tags || [], sale]
+        "INSERT INTO properties (title, description, price, location, images, type, beds, baths, sqft, tags, sale) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
+        [title, description, price, location, images, type.toLowerCase(), beds || null, baths || null, sqft || null, tags || [], sale]
     );
     return rows[0];
 }
@@ -128,7 +128,7 @@ async function createProperty(property) {
 async function updateProperty(id, property) {
     const { title, description, price, location, images, type, beds, baths, sqft, tags, sale } = property;
     const { rows } = await pool.query(
-        "UPDATE properties SET title = $1, description = $2, price = $3, location = $4, images = ARRAY[$5], type = $6, beds = $7, baths = $8, sqft = $9, tags = ARRAY[$10], sale = $11 WHERE id = $12 RETURNING *",
+        "UPDATE properties SET title = $1, description = $2, price = $3, location = $4, images = $5, type = $6, beds = $7, baths = $8, sqft = $9, tags = $10, sale = $11 WHERE id = $12 RETURNING *",
         [title, description, price, location, images, type || null, beds || null, baths || null, sqft || null, tags || [], sale || null, id]
     );
     return rows[0];
