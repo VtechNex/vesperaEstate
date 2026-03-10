@@ -46,7 +46,7 @@ const getProperties = async (page = 1, limit = 20, filters = {}) => {
 const uploadPropertyImage = async (formData) => {
     try {
         const response = await axios.post(
-            `${API.PROPERTIES}/upload-image`,
+            `${API.PROPERTIES}/upload-property-images`,
             formData,
             {
                 headers: {
@@ -58,7 +58,7 @@ const uploadPropertyImage = async (formData) => {
         return response;
     } catch (error) {
         console.error("Error uploading property image:", error);
-        return error.response;
+        return { status: 500 };
     }
 };
 

@@ -78,7 +78,7 @@ export default function ManagePropertiesMedia() {
         const uploadRes = await PROPERTIES.UPLOAD_IMAGE(imageFormData);
 
         if (uploadRes?.status === 200 || uploadRes?.status === 201) {
-          uploadedImageUrls = uploadRes.data?.urls || [];
+          uploadedImageUrls = uploadRes.data?.images?.map(image=>image.url) || [];
         } else {
           alert("Image upload failed.");
           setLoading(false);
@@ -161,7 +161,7 @@ export default function ManagePropertiesMedia() {
       beds: property.beds ? String(property.beds) : "",
       baths: property.baths ? String(property.baths) : "",
       sqft: property.sqft ? String(property.sqft) : "",
-      tags: Array.isArray(property.tags) ? property.tags.join(", ") : "",
+      tags: property.tags.map(tag=>tag),
       sale: Boolean(property.sale),
       images: []
     });
@@ -314,7 +314,7 @@ function PropertyCard({ property, onEdit, onDelete }) {
   return (
     <div className="bg-black rounded-xl border border-white/10 overflow-hidden hover:border-[#D4AF37]/40 transition">
       <img
-        src={property.images?.[0] || "https://via.placeholder.com/400x300"}
+        src={property.images?.[0] || ""}
         alt={property.title}
         className="h-48 w-full object-cover"
       />
